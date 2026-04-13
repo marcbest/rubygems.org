@@ -7,7 +7,7 @@ ruby file: ".ruby-version"
 gem "rails", "~> 8.0.5"
 gem "rails-i18n", "~> 8.1.0"
 
-gem "aws-sdk-s3", "~> 1.217"
+gem "aws-sdk-s3", "~> 1.218"
 gem "aws-sdk-sqs", "~> 1.112"
 gem "bootsnap", "~> 1.23"
 gem "clearance", "~> 2.11"
@@ -23,7 +23,7 @@ gem "flipper-active_record", "~> 1.4"
 gem "flipper-ui", "~> 1.4"
 gem "good_job", "~> 3.99"
 gem "gravtastic", "~> 3.2"
-gem "honeybadger", "~> 6.5.2", require: false
+gem "honeybadger", "~> 6.5.4", require: false
 gem "http_accept_language", "~> 2.1"
 gem "kaminari", "~> 1.2"
 gem "mail", "~> 2.9"
@@ -43,13 +43,12 @@ gem "rdoc", "~> 7.2"
 gem "roadie-rails", "~> 3.4"
 gem "ruby-magic", "~> 0.6"
 gem "shoryuken", "~> 7.0", require: false
-gem "statsd-instrument", "~> 3.10"
+gem "statsd-instrument", "~> 3.11"
 gem "validates_formatting_of", "~> 0.9"
 gem "opensearch-ruby", "~> 3.4"
 gem "searchkick", "~> 6.1"
 gem "faraday_middleware-aws-sigv4", "~> 1.0"
 gem "xml-simple", "~> 1.1"
-gem "compact_index", "~> 0.15.0"
 gem "rack-attack", "~> 6.8"
 gem "rqrcode", "~> 3.2"
 gem "rotp", "~> 6.2"
@@ -73,10 +72,10 @@ gem "yaml-schema", "~> 1.2"
 # Admin dashboard
 gem "avo", "~> 3.13"
 gem "pagy", "~> 8.4"
-gem "view_component", "~> 4.5.0"
+gem "view_component", "~> 4.6.0"
 gem "pundit", "~> 2.5"
 gem "chartkick", "~> 5.2"
-gem "groupdate", "~> 6.7"
+gem "groupdate", "~> 6.8"
 gem "prop_initializer", "~> 0.2"
 
 group :avo, optional: true do
@@ -152,8 +151,7 @@ group :test do
   gem "simplecov-cobertura", "~> 3.1", require: false
   gem "aggregate_assertions", "~> 0.3.0"
   gem "minitest-gcstats", "~> 1.3"
-  gem "minitest-reporters", "~> 1.7"
-  gem "gem_server_conformance", "~> 0.1.4"
+  gem "minitest-reporters", "~> 1.8"
 end
 
 gem "avo_upgrade", "~> 0.1.1", group: :development

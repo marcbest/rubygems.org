@@ -3,7 +3,7 @@
 require "tempfile"
 require "test_helper"
 
-class CompactIndexTest < ActionDispatch::IntegrationTest
+class Api::CompactIndexTest < ActionDispatch::IntegrationTest
   def etag(body)
     %("#{Digest::MD5.hexdigest(body)}")
   end
@@ -14,7 +14,8 @@ class CompactIndexTest < ActionDispatch::IntegrationTest
 
   setup do
     @rubygem2 = create(:rubygem, name: "gemB")
-    @version = create(:version, rubygem: @rubygem2, number: "1.0.0", info_checksum: "qw2dwe")
+    @version = create(:version, rubygem: @rubygem2, number: "1.0.0", info_checksum: "qw2dwe",
+      created_at: 5.days.ago)
 
     # another gem
     rubygem = create(:rubygem, name: "gemA")
@@ -22,37 +23,41 @@ class CompactIndexTest < ActionDispatch::IntegrationTest
     dep2 = create(:rubygem, name: "gemA2", indexed: true)
 
     # minimal version
-    create(:version,
+    @gem_a_v100 = create(:version,
       rubygem: rubygem,
       number: "1.0.0",
       info_checksum: "013we2",
-      required_ruby_version: nil)
+      required_ruby_version: nil,
+      created_at: 4.days.ago)
 
     # version with deps but no ruby or rubygems requirements
-    version = create(:version,
+    @gem_a_v200 = create(:version,
       rubygem: rubygem,
       number: "2.0.0",
       info_checksum: "1cf94r",
-      required_ruby_version: nil)
-    create(:dependency, rubygem: dep1, version: version)
+      required_ruby_version: nil,
+      created_at: 3.days.ago)
+    create(:dependency, rubygem: dep1, version: @gem_a_v200)
 
     # version with required ruby and rubygems version
-    create(:version,
+    @gem_a_v120 = create(:version,
       rubygem: rubygem,
       number: "1.2.0",
       info_checksum: "13q4es",
       required_rubygems_version: ">1.9",
-      required_ruby_version: ">= 2.0.0")
+      required_ruby_version: ">= 2.0.0",
+      created_at: 2.days.ago)
 
     # version with everything
-    version = create(:version,
+    @gem_a_v210 = create(:version,
       rubygem: rubygem,
       number: "2.1.0",
       info_checksum: "e217fz",
-      required_rubygems_version: ">=2.0")
+      required_rubygems_version: ">=2.0",
+      created_at: 1.day.ago)
 
-    create(:dependency, rubygem: dep1, version: version)
-    create(:dependency, rubygem: dep2, version: version)
+    create(:dependency, rubygem: dep1, version: @gem_a_v210)
+    create(:dependency, rubygem: dep2, version: @gem_a_v210)
   end
 
   test "/names output" do
@@ -149,10 +154,10 @@ class CompactIndexTest < ActionDispatch::IntegrationTest
   test "/info with existing gem" do
     expected = <<~VERSIONS_FILE
       ---
-      1.0.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,rubygems:>= 2.6.3
-      2.0.0 gemA1:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,rubygems:>= 2.6.3
-      1.2.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>1.9
-      2.1.0 gemA1:= 1.0.0,gemA2:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>=2.0
+      1.0.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,rubygems:>= 2.6.3,created_at:#{@gem_a_v100.created_at.utc.iso8601}
+      2.0.0 gemA1:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,rubygems:>= 2.6.3,created_at:#{@gem_a_v200.created_at.utc.iso8601}
+      1.2.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>1.9,created_at:#{@gem_a_v120.created_at.utc.iso8601}
+      2.1.0 gemA1:= 1.0.0,gemA2:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>=2.0,created_at:#{@gem_a_v210.created_at.utc.iso8601}
     VERSIONS_FILE
     expected_digest = digest(expected)
 
@@ -174,10 +179,10 @@ class CompactIndexTest < ActionDispatch::IntegrationTest
   test "/info partial response" do
     expected = <<~VERSIONS_FILE
       ---
-      1.0.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,rubygems:>= 2.6.3
-      2.0.0 gemA1:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,rubygems:>= 2.6.3
-      1.2.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>1.9
-      2.1.0 gemA1:= 1.0.0,gemA2:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>=2.0
+      1.0.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,rubygems:>= 2.6.3,created_at:#{@gem_a_v100.created_at.utc.iso8601}
+      2.0.0 gemA1:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,rubygems:>= 2.6.3,created_at:#{@gem_a_v200.created_at.utc.iso8601}
+      1.2.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>1.9,created_at:#{@gem_a_v120.created_at.utc.iso8601}
+      2.1.0 gemA1:= 1.0.0,gemA2:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>=2.0,created_at:#{@gem_a_v210.created_at.utc.iso8601}
     VERSIONS_FILE
 
     get info_path(gem_name: "gemA"), env: { range: "bytes=159-" }
@@ -188,11 +193,12 @@ class CompactIndexTest < ActionDispatch::IntegrationTest
 
   test "/info with new gem" do
     rubygem = create(:rubygem, name: "gemC")
-    version = create(:version, rubygem: rubygem, number: "1.0.0", info_checksum: "65ea0d")
+    version = create(:version, rubygem: rubygem, number: "1.0.0", info_checksum: "65ea0d",
+      created_at: Time.utc(2024, 2, 1))
     create(:dependency, :development, version: version, rubygem: @rubygem2)
     expected = <<~VERSIONS_FILE
       ---
-      1.0.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>= 2.6.3
+      1.0.0 |checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>= 2.6.3,created_at:2024-02-01T00:00:00Z
     VERSIONS_FILE
     expected_digest = digest(expected)
 
@@ -210,6 +216,11 @@ class CompactIndexTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
     assert_nil @response.headers["ETag"]
+    assert_nil @response.headers["Set-Cookie"], "Expected no Set-Cookie on /info 404"
+    assert_includes @response.headers["Cache-Control"], "public"
+    assert_match(/max-age=60/, @response.headers["Cache-Control"])
+    assert_match(/max-age=600/, @response.headers["Surrogate-Control"])
+    assert_equal "info/404 info/donotexist", @response.headers["Surrogate-Key"]
   end
 
   test "/info with gzip" do
@@ -229,7 +240,7 @@ class CompactIndexTest < ActionDispatch::IntegrationTest
 
     expected = <<~VERSIONS_FILE
       ---
-      1.0.0 aaab:>= 0,aaab:~> 0.2,bbcc:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>= 2.6.3
+      1.0.0 aaab:>= 0,aaab:~> 0.2,bbcc:= 1.0.0|checksum:b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78,ruby:>= 2.0.0,rubygems:>= 2.6.3,created_at:#{@version.created_at.utc.iso8601}
     VERSIONS_FILE
     expected_digest = digest(expected)
 
